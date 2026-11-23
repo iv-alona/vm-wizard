@@ -81,7 +81,7 @@ export const ramInGB = (d: Pick<Draft, "ram" | "ramUnit">) => {
 export const formatRam = (d: Pick<Draft, "ram" | "ramUnit">) => `${Number(d.ram)} ${d.ramUnit}`;
 export const formatDisk = (k: Disk) => `${k.size} ${k.unit} · ${k.provisioning}`;
 export const diskGB = (k: Pick<Disk, "size" | "unit">) => k.size * (k.unit === "TB" ? 1024 : 1);
-export const formatGB = (gb: number) => (gb >= 1024 ? `${Number((gb / 1024).toFixed(2))} TB` : `${Number(gb.toFixed(1))} GB`);
+export const formatGB = (gb: number) => `${Number(gb.toFixed(1))} GB`;
 export const pluralDisks = (n: number) => (n === 1 ? "1 disk" : `${n} disks`);
 
 export function nextFreeName(base: string, taken = EXISTING_NAMES) {
