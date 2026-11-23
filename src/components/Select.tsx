@@ -1,4 +1,5 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
+import { createPortal } from "react-dom";
 import { Icon } from "./Icon";
 
 interface SelectProps<T extends string> {
@@ -28,7 +29,10 @@ export function Select<T extends string>({ label, value, options, onChange, hint
 
   useEffect(() => {
     if (!open) return;
-    const close = (e: PointerEvent) => { if (!root.current?.contains(e.target as Node)) setOpen(false); };
+    const close = (e: PointerEvent) => {
+      const t = e.target as Node;
+      if (!root.current?.contains(t) && !list.current?.contains(t)) setOpen(false);
+    };
     document.addEventListener("pointerdown", close);
     return () => document.removeEventListener("pointerdown", close);
   }, [open]);
@@ -37,7 +41,8 @@ export function Select<T extends string>({ label, value, options, onChange, hint
     if (open) list.current?.querySelector<HTMLElement>(`[data-index="${active}"]`)?.scrollIntoView({ block: "nearest" });
   }, [open, active]);
 
-  // The menu floats above the whole window (position: fixed), so footers and scroll areas never clip it.
+  // The menu is portalled to <body> with position: fixed, so no footer, scroll area, transform or
+  // backdrop-filter (e.g. the modal scrim) can clip or offset it.
   // It opens downward, or upward when there isn't enough room below.
   const [pos, setPos] = useState<{ top?: number; bottom?: number; left: number; width: number; maxH: number } | null>(null);
   useLayoutEffect(() => {
@@ -94,7 +99,7 @@ export function Select<T extends string>({ label, value, options, onChange, hint
         <span id={`${id}-value`}>{value}</span>
         <Icon name="chevron-down" size={16} className="select-chevron" />
       </button>
-      {open && pos && (
+      {open && pos && createPortal(
         <ul
           ref={list}
           id={`${id}-list`}
@@ -121,7 +126,8 @@ export function Select<T extends string>({ label, value, options, onChange, hint
               {o === value && <Icon name="check" size={16} />}
             </li>
           ))}
-        </ul>
+        </ul>,
+        document.body,
       )}
     </div>
   );
