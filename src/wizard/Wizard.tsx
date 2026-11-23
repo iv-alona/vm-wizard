@@ -4,7 +4,7 @@ import { Icon } from "../components/Icon";
 import { CreationProgress, OrbitLoader } from "../components/Loader";
 import { Modal } from "../components/Modal";
 import { Stepper } from "../components/Stepper";
-import { formatRam, initialDraft, pluralDisks, ramInGB, stepIsValid, type Draft, type StepIndex } from "./model";
+import { checkName, checkResources, formatRam, initialDraft, pluralDisks, ramInGB, stepIsValid, type Draft, type StepIndex } from "./model";
 import { StepDisks, StepGeneral, StepResources, StepReview } from "./steps";
 
 type Phase = "form" | "creating" | "success" | "failure";
@@ -78,6 +78,17 @@ export function Wizard({ theme, onToggleTheme, failNext, onFailConsumed }: {
     return () => [t1, t2, t3].forEach(clearTimeout);
   };
 
+  /** Field-level errors of a step, for the summary banner: each links to its field. */
+  const stepErrors = (k: StepIndex): { id: string; label: string; msg: string }[] => {
+    if (k === 1) { const n = checkName(draft.name); return n.error ? [{ id: "vm-name", label: "VM name", msg: n.error }] : []; }
+    if (k === 2) {
+      const r = checkResources(draft, hostRamGB);
+      return [r.cpu && { id: "cpu", label: "CPU cores", msg: r.cpu }, r.ram && { id: "ram", label: "RAM", msg: r.ram }].filter(Boolean) as { id: string; label: string; msg: string }[];
+    }
+    return [];
+  };
+  const blockedErrors = blocked ? stepErrors(step) : [];
+
   const requestClose = () => (dirty && phase === "form" ? setDiscardOpen(true) : reset());
 
   const header = (
@@ -99,7 +110,7 @@ export function Wizard({ theme, onToggleTheme, failNext, onFailConsumed }: {
             <>
               <OrbitLoader />
               <h1 tabIndex={-1} data-step-heading>Creating {draft.name}…</h1>
-              <p className="status-text">This usually takes less than a minute. Keep this window open to see the result.</p>
+              <p className="status-text">This usually takes less than a minute. You can close this window: the VM keeps being created and will appear in the VM list.</p>
               <CreationProgress stage={stage} labels={STAGES} />
             </>
           )}
@@ -116,7 +127,7 @@ export function Wizard({ theme, onToggleTheme, failNext, onFailConsumed }: {
             <>
               <span className="halo halo-danger"><Icon name="x-circle" size={44} /></span>
               <h1 tabIndex={-1} data-step-heading>VM was not created</h1>
-              <p className="status-text">Not enough free RAM on the host: {hostRamGB} GB available, {formatRam(draft)} requested. Another VM took resources while you were in the wizard. All your settings are kept.</p>
+              <p className="status-text">Not enough free RAM on the host: {hostRamGB} GB available, {formatRam(draft)} requested. Another VM took resources while you were in the wizard. All your settings are kept: lower the RAM to {hostRamGB} GB or less and create the VM again.</p>
             </>
           )}
         </div>
@@ -124,7 +135,7 @@ export function Wizard({ theme, onToggleTheme, failNext, onFailConsumed }: {
           <footer className="wiz-footer">
             <span className="spacer" />
             {phase === "success" && <><Button variant="neutral" onClick={reset}>Close</Button><Button variant="primary" onClick={reset}>Go to VM</Button></>}
-            {phase === "failure" && <><Button variant="neutral" onClick={() => { setPhase("form"); setStep(4); }}>Back to review</Button><Button variant="primary" onClick={create}>Retry</Button></>}
+            {phase === "failure" && <><Button variant="neutral" onClick={() => { setPhase("form"); setStep(4); }}>Back to review</Button><Button variant="primary" onClick={() => { setPhase("form"); setEditing(true); setStep(2); setShowErrors((s) => ({ ...s, 2: true })); }}>Edit CPU & RAM</Button></>}
           </footer>
         )}
       </div>
@@ -141,7 +152,17 @@ export function Wizard({ theme, onToggleTheme, failNext, onFailConsumed }: {
           {step === 2 && <StepResources draft={draft} set={set} showErrors={!!showErrors[2]} hostRamGB={hostRamGB} editing={editing} />}
           {step === 3 && <StepDisks draft={draft} set={set} />}
           {step === 4 && <StepReview draft={draft} hostRamGB={hostRamGB} failed={failed} onEdit={(k) => { setEditing(true); setStep(k); setShowErrors((s) => ({ ...s, [k]: true })); }} />}
-          {blocked && <div className="blocked"><Banner title="Fix the errors on this step to continue">The highlighted fields need your attention.</Banner></div>}
+          {blocked && blockedErrors.length > 0 && (
+            <div className="blocked">
+              <Banner title={`Fix ${blockedErrors.length === 1 ? "this field" : `${blockedErrors.length} fields`} to continue`}>
+                <ul className="banner-list">
+                  {blockedErrors.map((e) => (
+                    <li key={e.id}><button type="button" className="banner-link" onClick={() => document.getElementById(e.id)?.focus()}>{e.label}: {e.msg}</button></li>
+                  ))}
+                </ul>
+              </Banner>
+            </div>
+          )}
         </main>
       </div>
       <footer className="wiz-footer">

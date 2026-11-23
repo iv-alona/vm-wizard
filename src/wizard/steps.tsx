@@ -4,9 +4,10 @@ import { Icon } from "../components/Icon";
 import { Modal } from "../components/Modal";
 import { Select } from "../components/Select";
 import {
-  checkDiskForm, checkName, checkResources, formatDisk, formatRam, HOST, nextDiskName, OS_FAMILIES, OS_VERSIONS, ramInGB,
+  checkDiskForm, checkName, checkResources, diskGB, formatDisk, formatGB, formatRam, HOST, nextDiskName, OS_FAMILIES, OS_REQUIREMENTS, OS_VERSIONS, ramInGB,
   type Disk, type DiskForm, type Draft, type OsFamily, type Provisioning, type RamUnit, type SizeUnit,
 } from "./model";
+import { TEST_MODE } from "../testMode";
 
 type SetDraft = (fn: (d: Draft) => Draft) => void;
 
@@ -35,9 +36,10 @@ export function StepGeneral({ draft, set, showErrors }: { draft: Draft; set: Set
       <StepTitle title="Name your VM" subtitle="Choose a unique name and the operating system." />
       <div className="fields">
         <TextField
+          id="vm-name"
           label="VM name"
           hint="3–63 characters: letters, digits and hyphens. Must be unique."
-          placeholder="e.g. web-server-01"
+          placeholder="e.g. app-staging"
           value={draft.name}
           onChange={(e) => set((d) => ({ ...d, name: e.target.value }))}
           error={error}
@@ -60,7 +62,7 @@ export function StepGeneral({ draft, set, showErrors }: { draft: Draft; set: Set
         />
         <Select<string>
           label="Version"
-          hint={`Default image for ${draft.osFamily}`}
+          hint={draft.version === OS_VERSIONS[draft.osFamily][0] ? `Default image for ${draft.osFamily}` : undefined}
           value={draft.version}
           options={OS_VERSIONS[draft.osFamily]}
           onChange={(v) => set((d) => ({ ...d, version: v }))}
@@ -74,11 +76,14 @@ export function StepGeneral({ draft, set, showErrors }: { draft: Draft; set: Set
 
 export function StepResources({ draft, set, showErrors, hostRamGB, editing }: { draft: Draft; set: SetDraft; showErrors: boolean; hostRamGB: number; editing: boolean }) {
   const r = checkResources(draft, hostRamGB);
+  const req = OS_REQUIREMENTS[draft.version];
+  const belowMin = !!req && !r.ram && ramInGB(draft) < req.minRamGB;
   return (
     <>
       <StepTitle title="Allocate CPU and RAM" subtitle={editing ? "You're editing from Review. “Back to review” keeps your changes." : "Limits come from the selected host."} />
       <div className="fields">
         <TextField
+          id="cpu"
           label="CPU cores"
           hint={`Available on host: ${HOST.cpu} cores`}
           inputMode="numeric"
@@ -90,6 +95,7 @@ export function StepResources({ draft, set, showErrors, hostRamGB, editing }: { 
         <div className="row">
           <TextField
             className="grow"
+            id="ram"
             label="RAM"
             hint={`Available on host: ${hostRamGB} GB`}
             inputMode="decimal"
@@ -104,9 +110,15 @@ export function StepResources({ draft, set, showErrors, hostRamGB, editing }: { 
               </div>
             )}
           />
-          <Select<RamUnit> label="Unit" hint="GB or MB" value={draft.ramUnit} options={["GB", "MB"]} width={120}
+          <Select<RamUnit> label="Unit" hint="1 GB = 1024 MB" value={draft.ramUnit} options={["GB", "MB"]} width={120}
             onChange={(v) => set((d) => ({ ...d, ramUnit: v }))} error={showErrors && !!r.ram} />
         </div>
+        {req && (
+          <p className={`field-note ${belowMin ? "is-warning" : ""}`} role="status">
+            <Icon name={belowMin ? "alert-triangle" : "info"} size={16} />
+            <span>{belowMin ? `Below the minimum for ${draft.version}. ` : ""}{req.note}</span>
+          </p>
+        )}
         <Checkbox label="Enable nested virtualization" description="Lets this VM run its own virtual machines"
           checked={draft.nested} onChange={(v) => set((d) => ({ ...d, nested: v }))} />
       </div>
@@ -120,12 +132,22 @@ export function StepDisks({ draft, set }: { draft: Draft; set: SetDraft }) {
   const [modal, setModal] = useState<null | { id?: string }>(null);
   const [lastDiskMsg, setLastDiskMsg] = useState(false);
   const [attachNote, setAttachNote] = useState(false);
+  const [removed, setRemoved] = useState<null | { disk: Disk; index: number }>(null);
   const addRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => { if (!removed) return; const t = setTimeout(() => setRemoved(null), 8000); return () => clearTimeout(t); }, [removed]);
   const remove = (id: string) => {
     if (draft.disks.length === 1) { setLastDiskMsg(true); return; }
     setLastDiskMsg(false);
+    const index = draft.disks.findIndex((x) => x.id === id);
+    setRemoved({ disk: draft.disks[index], index });
     set((d) => ({ ...d, disks: d.disks.filter((x) => x.id !== id) }));
   };
+  const undo = () => {
+    if (!removed) return;
+    set((d) => { const disks = [...d.disks]; disks.splice(removed.index, 0, removed.disk); return { ...d, disks }; });
+    setRemoved(null);
+  };
+  const usedGB = draft.disks.reduce((s, k) => s + diskGB(k), 0);
   return (
     <>
       <StepTitle title="Add disks" subtitle="Every VM needs at least one disk. We added a default one: edit it or add more." />
@@ -143,10 +165,17 @@ export function StepDisks({ draft, set }: { draft: Draft; set: SetDraft }) {
           </li>
         ))}
       </ul>
+      <p className="disk-total">Total {formatGB(usedGB)} · {formatGB(HOST.datastoreGB - usedGB)} free on the datastore</p>
+      {removed && (
+        <div className="undo-bar" role="status">
+          <span>{removed.disk.name} removed</span>
+          <Button size="sm" variant="neutral" onClick={undo}>Undo</Button>
+        </div>
+      )}
       {lastDiskMsg && <p className="field-error" role="alert">A VM needs at least one disk. Edit this disk instead.</p>}
       <div className="row-actions">
-        <Button ref={addRef} icon="plus" variant="neutral" onClick={() => setModal({})}>Create new disk</Button>
-        <Button variant="subtle" onClick={() => setAttachNote(true)}>Attach existing disk</Button>
+        <Button ref={addRef} icon="plus" variant="neutral" onClick={() => setModal({})}>Add disk</Button>
+        {!TEST_MODE && <Button variant="subtle" onClick={() => setAttachNote(true)}>Attach existing disk</Button>}
       </div>
       {attachNote && <p className="field-hint" role="status">Attaching an existing disk isn’t part of this prototype — create a new one instead.</p>}
       {modal && (
@@ -169,7 +198,8 @@ function DiskModal({ disks, editing, onClose, onSave }: { disks: Disk[]; editing
     ? { name: editing.name, size: String(editing.size), unit: editing.unit, provisioning: editing.provisioning }
     : { name: nextDiskName(disks), size: "50", unit: "GB", provisioning: "Thin" });
   const [submitted, setSubmitted] = useState(false);
-  const errors = checkDiskForm(form, disks, editing?.id);
+  const freeGB = HOST.datastoreGB - disks.filter((d) => d.id !== editing?.id).reduce((s, k) => s + diskGB(k), 0);
+  const errors = checkDiskForm(form, disks, editing?.id, freeGB);
   const submit = () => {
     setSubmitted(true);
     if (errors.name || errors.size) { document.querySelector<HTMLInputElement>(".modal [aria-invalid='true']")?.focus(); return; }
@@ -177,19 +207,20 @@ function DiskModal({ disks, editing, onClose, onSave }: { disks: Disk[]; editing
   };
   return (
     <Modal
-      title={editing ? `Edit ${editing.name}` : "Create new disk"}
+      title={editing ? `Edit ${editing.name}` : "Add disk"}
       onClose={onClose}
       footer={<><Button variant="subtle" onClick={onClose}>Cancel</Button><Button variant="primary" onClick={submit}>{editing ? "Save disk" : "Add disk"}</Button></>}
     >
       <form className="fields" onSubmit={(e) => { e.preventDefault(); submit(); }}>
         <TextField label="Disk name" value={form.name} data-autofocus onChange={(e) => setForm({ ...form, name: e.target.value })} error={submitted ? errors.name : undefined} />
         <div className="row">
-          <TextField className="grow" label="Size" inputMode="numeric" value={form.size} onChange={(e) => setForm({ ...form, size: e.target.value.replace(/[^\d.]/g, "") })} error={submitted ? errors.size : undefined} />
-          <Select<SizeUnit> label="Unit" value={form.unit} options={["GB", "TB"]} width={120} onChange={(v) => setForm({ ...form, unit: v })} />
+          <TextField className="grow" label="Size" hint={`Free on the datastore: ${formatGB(freeGB)}`} inputMode="numeric" value={form.size} onChange={(e) => setForm({ ...form, size: e.target.value.replace(/[^\d.]/g, "") })} error={submitted ? errors.size : undefined} />
+          <Select<SizeUnit> label="Unit" hint="1 TB = 1024 GB" value={form.unit} options={["GB", "TB"]} width={120} onChange={(v) => setForm({ ...form, unit: v })} />
         </div>
         <Select<Provisioning>
           label="Provisioning"
-          hint={form.provisioning === "Thin" ? "Thin: space is used as data is written" : "Thick: the full size is reserved at once"}
+          hint="How disk space is reserved on the datastore"
+          describe={(v) => (v === "Thin" ? "Space is used as data is written. Saves space." : "The full size is reserved at once. Steadier performance.")}
           value={form.provisioning}
           options={["Thin", "Thick"]}
           onChange={(v) => setForm({ ...form, provisioning: v })}
