@@ -1,0 +1,155 @@
+/*
+ * HiFi tokens — exported from Figma (collection "HiFi tokens").
+ * Light = :root, Dark = [data-theme="dark"]. Do not edit by hand: change the
+ * variable in Figma and re-export so design and code stay one source of truth.
+ */
+:root {
+  color-scheme: light;
+
+  /* Typography */
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --text-heading: 600 24px/1.2 var(--font-sans);
+  --text-subheading: 400 20px/1.2 var(--font-sans);
+  --text-body: 400 16px/1.4 var(--font-sans);
+  --text-body-strong: 600 16px/1.4 var(--font-sans);
+  --text-small: 400 14px/1.4 var(--font-sans);
+  --text-small-strong: 600 14px/1.4 var(--font-sans);
+  --text-single: 400 16px/1 var(--font-sans);
+
+  /* Space & radius */
+  --space-100: 4px;
+  --space-200: 8px;
+  --space-300: 12px;
+  --space-400: 16px;
+  --space-600: 24px;
+  --space-800: 32px;
+  --radius-100: 8px;
+  --radius-200: 12px;
+  --radius-400: 24px;
+  --radius-full: 9999px;
+
+  /* Motion */
+  --motion-hover: 120ms ease-out;
+  --motion-menu: 180ms ease-out;
+  --motion-step: 300ms ease-in-out;
+
+  /* Colors — Light */
+  --text-default: #1b1d3a;
+  --text-secondary: #565c7e;
+  --text-tertiary: #6b7298;
+  --text-on-brand: #ffffff;
+  --text-brand-tertiary: #3d3db8;
+  --text-danger: #c8243b;
+  --text-danger-on-tertiary: #a61e33;
+  --text-disabled: #a9aecb;
+
+  --icon-default: #2a2d52;
+  --icon-tertiary: #6b7298;
+  --icon-brand: #5048ff;
+  --icon-positive: #0e9f7e;
+  --icon-danger: #c8243b;
+
+  --bg-default: #ffffff;
+  --bg-default-hover: #f4f5ff;
+  --bg-secondary: #f7f8ff;
+  --bg-tertiary: #eceeff;
+  --bg-tertiary-hover: #e2e5ff;
+  --bg-neutral: #f1f2fb;
+  --bg-neutral-hover: #e6e8f7;
+  --bg-brand: #5048ff;
+  --bg-brand-hover: #3f36f0;
+  --bg-brand-tertiary: #ecebff;
+  --bg-danger: #e5484d;
+  --bg-danger-hover: #d13b41;
+  --bg-danger-tertiary: #fff1f3;
+  --bg-positive-secondary: #e3f8f1;
+  --bg-disabled: #eceef8;
+
+  --border-default: #7e86b6;
+  --border-hover: #6b73b0;
+  --border-secondary: #c9cdeb;
+  --border-brand: #5048ff;
+  --border-brand-tertiary: #c4c2ff;
+  --border-danger: #e25569;
+  --border-danger-tertiary: #f7c8d0;
+  --border-disabled: #d6d9ee;
+
+  --glass-window: #ffffff;
+  --glass-panel: #f7f8ff;
+  --glass-bar: #ffffff;
+  --glass-stroke: #e4e7f7;
+  --glass-shadow: rgb(75 78 200 / 0.16);
+  --overlay-scrim: rgb(27 29 58 / 0.32);
+  --focus-ring: rgb(80 72 255 / 0.28);
+
+  --aurora-blue: rgb(157 187 255 / 0.38);
+  --aurora-cyan: rgb(168 237 248 / 0.22);
+  --aurora-violet: rgb(201 176 255 / 0.35);
+  --aurora-window-blue: rgb(199 214 255 / 0.18);
+  --aurora-window-violet: rgb(226 214 255 / 0.16);
+  --aurora-dim: rgb(255 255 255 / 0);
+  --aurora-dim-rail: rgb(255 255 255 / 0);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --text-default: #e8eaff;
+  --text-secondary: #a9aed3;
+  --text-tertiary: #8c93bd;
+  --text-on-brand: #ffffff;
+  --text-brand-tertiary: #c2beff;
+  --text-danger: #ff8696;
+  --text-danger-on-tertiary: #ffb8c2;
+  --text-disabled: #5b6087;
+
+  --icon-default: #dde0ff;
+  --icon-tertiary: #8c93bd;
+  --icon-brand: #9a95ff;
+  --icon-positive: #3dd9ae;
+  --icon-danger: #ff8696;
+
+  --bg-default: #1a1c33;
+  --bg-default-hover: #222543;
+  --bg-secondary: #14162b;
+  --bg-tertiary: #262a52;
+  --bg-tertiary-hover: #2e3363;
+  --bg-neutral: #23264a;
+  --bg-neutral-hover: #2c3060;
+  --bg-brand: #5b55ee;
+  --bg-brand-hover: #6a64ff;
+  --bg-brand-tertiary: #26245a;
+  --bg-danger: #e5484d;
+  --bg-danger-hover: #f05a60;
+  --bg-danger-tertiary: #33141e;
+  --bg-positive-secondary: #0f3a30;
+  --bg-disabled: #1e2038;
+
+  --border-default: #6a72a8;
+  --border-hover: #7c84bd;
+  --border-secondary: #2e3258;
+  --border-brand: #7f7aff;
+  --border-brand-tertiary: #3e3a8a;
+  --border-danger: #ff6b7e;
+  --border-danger-tertiary: #6b2536;
+  --border-disabled: #2a2d4a;
+
+  --glass-window: #14162b;
+  --glass-panel: #14162b;
+  --glass-bar: #171933;
+  --glass-stroke: #2a2e52;
+  --glass-shadow: rgb(0 0 0 / 0.45);
+  --overlay-scrim: rgb(5 6 15 / 0.62);
+  --focus-ring: rgb(127 122 255 / 0.42);
+
+  --aurora-dim: rgb(15 17 36 / 0.78);
+  --aurora-dim-rail: rgb(20 22 43 / 0.6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-hover: 0ms linear;
+    --motion-menu: 0ms linear;
+    --motion-step: 0ms linear;
+  }
+}
