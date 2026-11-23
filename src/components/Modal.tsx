@@ -12,6 +12,8 @@ export function Modal({ title, onClose, children, footer, size = "md", role = "d
     const focusables = () => Array.from(node.querySelectorAll<HTMLElement>("button, input, [tabindex]:not([tabindex='-1'])")).filter((el) => !el.hasAttribute("disabled"));
     (node.querySelector<HTMLElement>("[data-autofocus]") ?? focusables()[0])?.focus();
     const onKey = (e: KeyboardEvent) => {
+      // Esc on an open dropdown closes only the dropdown, not the dialog.
+      if (e.key === "Escape" && (e.target as HTMLElement).getAttribute?.("aria-expanded") === "true") return;
       if (e.key === "Escape") { e.stopPropagation(); onClose(); }
       if (e.key === "Tab") {
         const f = focusables(); if (!f.length) return;
