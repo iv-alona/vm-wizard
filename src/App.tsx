@@ -9,9 +9,15 @@ const readTheme = (): Theme => {
   return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 };
 
+// Usability-test links: ?test hides the prototype controls (they give away the answers);
+// ?test&fail makes the next "Create VM" with more than 64 GB RAM fail, for the recovery task.
+const params = new URLSearchParams(window.location.search);
+const TEST_MODE = params.has("test");
+const FORCE_FAIL = params.has("fail");
+
 export default function App() {
   const [theme, setTheme] = useState<Theme>(readTheme);
-  const [failNext, setFailNext] = useState(false);
+  const [failNext, setFailNext] = useState(FORCE_FAIL);
   const [key, setKey] = useState(0);
 
   useEffect(() => {
@@ -22,7 +28,7 @@ export default function App() {
   return (
     <div className="page">
       <Wizard key={key} theme={theme} onToggleTheme={() => setTheme((t) => (t === "light" ? "dark" : "light"))} failNext={failNext} onFailConsumed={() => setFailNext(false)} />
-      <aside className="demo" aria-label="Prototype controls">
+      {!TEST_MODE && <aside className="demo" aria-label="Prototype controls">
         <p className="demo-title">Prototype controls</p>
         <p className="demo-text">Try the name <code>VMHome1</code> for the taken-name recovery, or type <code>100</code> with <code>MB</code> on CPU & RAM.</p>
         <label className="demo-switch">
@@ -30,7 +36,7 @@ export default function App() {
           <span>Next “Create VM” fails (host RAM drops to 64 GB)</span>
         </label>
         <button className="demo-link" onClick={() => setKey((k) => k + 1)}>Restart wizard</button>
-      </aside>
+      </aside>}
     </div>
   );
 }
