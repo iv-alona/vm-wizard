@@ -12,6 +12,8 @@ interface SelectProps<T extends string> {
   error?: boolean;
   /** Visible rows before the list scrolls (3.5 shows a half row as a scroll cue). */
   maxVisible?: number;
+  /** Optional second line per option, so options can be compared without picking each one. */
+  describe?: (v: T) => string;
 }
 
 /**
@@ -19,7 +21,8 @@ interface SelectProps<T extends string> {
  * Click or Enter/Space/↓ opens; ↑↓ Home End move; Enter selects; Esc/Tab/outside click closes.
  * Only one menu is open at a time because any outside interaction closes it.
  */
-export function Select<T extends string>({ label, value, options, onChange, hint, width, error, maxVisible = 3.5 }: SelectProps<T>) {
+export function Select<T extends string>({ label, value, options, onChange, hint, width, error, maxVisible = 3.5, describe }: SelectProps<T>) {
+  const rowH = describe ? 60 : 40;
   const id = useId();
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(() => Math.max(0, options.indexOf(value)));
@@ -49,7 +52,7 @@ export function Select<T extends string>({ label, value, options, onChange, hint
     if (!open) return;
     const place = () => {
       const r = trigger.current!.getBoundingClientRect();
-      const wanted = Math.min(options.length, maxVisible) * 40 + 10;
+      const wanted = Math.min(options.length, maxVisible) * rowH + 10;
       const below = window.innerHeight - r.bottom - 12, above = r.top - 12;
       const up = below < wanted && above > below;
       setPos({ left: r.left, width: r.width, maxH: Math.min(wanted, up ? above : below),
@@ -59,7 +62,7 @@ export function Select<T extends string>({ label, value, options, onChange, hint
     window.addEventListener("resize", place);
     window.addEventListener("scroll", place, true);
     return () => { window.removeEventListener("resize", place); window.removeEventListener("scroll", place, true); };
-  }, [open, options.length, maxVisible]);
+  }, [open, options.length, maxVisible, rowH]);
 
   const openMenu = () => { setActive(Math.max(0, options.indexOf(value))); setOpen(true); };
   const choose = (i: number) => { onChange(options[i]); setOpen(false); trigger.current?.focus(); };
@@ -78,7 +81,6 @@ export function Select<T extends string>({ label, value, options, onChange, hint
     else if (e.key === "Tab") setOpen(false);
   };
 
-  const rowH = 40;
   return (
     <div className={`field select ${open ? "is-open" : ""} ${error ? "is-error" : ""}`} ref={root} style={width ? { width } : undefined}>
       <span className="field-label" id={`${id}-label`}>{label}</span>
@@ -118,11 +120,14 @@ export function Select<T extends string>({ label, value, options, onChange, hint
               data-index={i}
               role="option"
               aria-selected={o === value}
-              className={`menu-item ${i === active ? "is-active" : ""} ${o === value ? "is-selected" : ""}`}
+              className={`menu-item ${describe ? "has-desc" : ""} ${i === active ? "is-active" : ""} ${o === value ? "is-selected" : ""}`}
               onPointerEnter={() => setActive(i)}
               onClick={() => choose(i)}
             >
-              <span>{o}</span>
+              <span className="menu-item-text">
+                <span>{o}</span>
+                {describe && <span className="menu-item-desc">{describe(o)}</span>}
+              </span>
               {o === value && <Icon name="check" size={16} />}
             </li>
           ))}

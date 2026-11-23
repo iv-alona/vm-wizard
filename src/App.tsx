@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Wizard, type Theme } from "./wizard/Wizard";
+import { FORCE_FAIL, TEST_MODE } from "./testMode";
 
 const readTheme = (): Theme => {
   try {
@@ -9,11 +10,6 @@ const readTheme = (): Theme => {
   return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 };
 
-// Usability-test links: ?test hides the prototype controls (they give away the answers);
-// ?test&fail makes the next "Create VM" with more than 64 GB RAM fail, for the recovery task.
-const params = new URLSearchParams(window.location.search);
-const TEST_MODE = params.has("test");
-const FORCE_FAIL = params.has("fail");
 
 export default function App() {
   const [theme, setTheme] = useState<Theme>(readTheme);

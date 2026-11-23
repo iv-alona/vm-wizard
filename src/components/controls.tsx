@@ -35,6 +35,8 @@ export function IconButton({ icon, label, className = "", ...rest }: ButtonHTMLA
 
 interface FieldShellProps {
   label: string;
+  /** Stable id for the control, so other UI (e.g. the error summary) can move focus to it. */
+  id?: string;
   hint?: ReactNode;
   error?: ReactNode;
   success?: ReactNode;
@@ -43,9 +45,9 @@ interface FieldShellProps {
   className?: string;
 }
 
-export function FieldShell({ label, hint, error, success, children, after, className = "" }: FieldShellProps) {
+export function FieldShell({ label, id: fixedId, hint, error, success, children, after, className = "" }: FieldShellProps) {
   const id = useId();
-  const inputId = `${id}-input`;
+  const inputId = fixedId ?? `${id}-input`;
   const hintId = hint ? `${id}-hint` : undefined;
   const msgId = error || success ? `${id}-msg` : undefined;
   const describedBy = [hintId, msgId].filter(Boolean).join(" ") || undefined;
@@ -72,11 +74,11 @@ interface TextFieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "ch
 }
 
 export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(function TextField(
-  { label, hint, error, success, after, className, ...input },
+  { label, id, hint, error, success, after, className, ...input },
   ref,
 ) {
   return (
-    <FieldShell label={label} hint={hint} error={error} success={success} after={after} className={className}>
+    <FieldShell label={label} id={id} hint={hint} error={error} success={success} after={after} className={className}>
       {({ inputId, describedBy }) => (
         <input ref={ref} id={inputId} className="input" aria-invalid={!!error} aria-describedby={describedBy} {...input} />
       )}
@@ -107,12 +109,13 @@ export const Tag = ({ children, tone = "neutral" }: { children: ReactNode; tone?
 );
 
 export function Banner({ title, children, tone = "danger" }: { title: string; children?: ReactNode; tone?: "danger" | "info" }) {
+  const body = typeof children === "string" ? <p className="banner-body">{children}</p> : children;
   return (
     <div className={`banner banner-${tone}`} role={tone === "danger" ? "alert" : "status"}>
       <Icon name={tone === "danger" ? "alert-triangle" : "info"} size={20} />
       <div>
         <p className="banner-title">{title}</p>
-        {children && <p className="banner-body">{children}</p>}
+        {body}
       </div>
     </div>
   );

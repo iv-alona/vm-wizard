@@ -36,10 +36,25 @@ export const OS_VERSIONS: Record<OsFamily, string[]> = {
   BSD: ["FreeBSD 14", "OpenBSD 7.5"],
 };
 
+/**
+ * Minimum RAM per OS image, from the vendors' documentation (checked Nov 2026):
+ * Ubuntu Server docs (1.5 GB ISO install, 3 GB suggested), Debian 12 install guide (no desktop: 256 MB min, 512 MB recommended),
+ * RHEL 9 install docs (1.5 GiB local media), Microsoft "Hardware requirements for Windows Server" (2 GB Desktop Experience,
+ * 512 MB Server Core), Windows 11 requirements (4 GB). No note where no current official figure was found.
+ */
+export const OS_REQUIREMENTS: Record<string, { minRamGB: number; note: string }> = {
+  "Ubuntu 24.04 LTS": { minRamGB: 1.5, note: "Ubuntu 24.04 LTS needs at least 1.5 GB RAM; 3 GB or more is suggested." },
+  "Debian 12": { minRamGB: 0.25, note: "Debian 12 without a desktop needs at least 256 MB RAM; 512 MB is recommended." },
+  "RHEL 9": { minRamGB: 1.5, note: "RHEL 9 needs at least 1.5 GB RAM." },
+  "Windows Server 2025": { minRamGB: 2, note: "Windows Server 2025 needs at least 2 GB RAM with Desktop Experience (512 MB for Server Core)." },
+  "Windows Server 2022": { minRamGB: 2, note: "Windows Server 2022 needs at least 2 GB RAM with Desktop Experience (512 MB for Server Core)." },
+  "Windows 11 Pro": { minRamGB: 4, note: "Windows 11 needs at least 4 GB RAM." },
+};
+
 /** Names that already exist on the host (drives the “name taken” path). */
 export const EXISTING_NAMES = ["VMHome1", "web-server-01", "db-primary"];
 
-export const HOST = { cpu: 16, ramGB: 128 };
+export const HOST = { cpu: 16, ramGB: 128, datastoreGB: 2048 };
 export const MIN_RAM_MB = 512;
 
 let diskSeq = 1;
@@ -65,6 +80,8 @@ export const ramInGB = (d: Pick<Draft, "ram" | "ramUnit">) => {
 
 export const formatRam = (d: Pick<Draft, "ram" | "ramUnit">) => `${Number(d.ram)} ${d.ramUnit}`;
 export const formatDisk = (k: Disk) => `${k.size} ${k.unit} · ${k.provisioning}`;
+export const diskGB = (k: Pick<Disk, "size" | "unit">) => k.size * (k.unit === "TB" ? 1024 : 1);
+export const formatGB = (gb: number) => (gb >= 1024 ? `${Number((gb / 1024).toFixed(2))} TB` : `${Number(gb.toFixed(1))} GB`);
 export const pluralDisks = (n: number) => (n === 1 ? "1 disk" : `${n} disks`);
 
 export function nextFreeName(base: string, taken = EXISTING_NAMES) {
@@ -131,7 +148,7 @@ export interface DiskForm {
   provisioning: Provisioning;
 }
 
-export function checkDiskForm(f: DiskForm, disks: Disk[], editingId?: string) {
+export function checkDiskForm(f: DiskForm, disks: Disk[], editingId?: string, freeGB = Infinity) {
   const out: { name?: string; size?: string } = {};
   const name = f.name.trim();
   if (!name) out.name = "Enter a disk name";
@@ -140,6 +157,7 @@ export function checkDiskForm(f: DiskForm, disks: Disk[], editingId?: string) {
   const size = Number(f.size);
   if (!f.size.trim() || Number.isNaN(size) || size <= 0) out.size = "Enter a size greater than 0";
   else if (f.unit === "TB" && size > 64) out.size = "Maximum 64 TB";
+  else if (diskGB({ size, unit: f.unit }) > freeGB) out.size = `Only ${formatGB(freeGB)} free on the datastore`;
   return out;
 }
 
